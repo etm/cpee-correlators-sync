@@ -21,25 +21,25 @@ require 'riddl/client'
 
 SyncList = Data.define(:amount, :list)
 
-class Message < Riddl::Implementation
+class Sync < Riddl::Implementation
   def response
     syncs = @a[0]
     id = @p[0].value
-    amount = @p[1].value
+    amount = @p[1].value.to_i
 
-    syncs[id] ||= SyncList.new(amount,{})
-
+    syncs[id] ||= SyncList.new(amount,[])
     syncs[id].amount = amount if syncs[id].amount < amount
-    if syncs[id].list.length - 1 ==  amount
+    if syncs[id].list.length ==  amount - 1
       syncs[id].list.each do |cb|
         Riddl::Client.new(cb).put
       end
       syncs.delete(id)
     else
       syncs[id].list << @h['CPEE_CALLBACK']
-      return RIDDL::Header.new('CPEE-CALLBACK',true)
+      @headers << Riddl::Header.new('CPEE-CALLBACK','true')
     end
     nil
+  end
 end
 
 Riddl::Server.new(File.join(__dir__,'/sync.xml'), :host => 'localhost', :port => 9312) do |opts|
